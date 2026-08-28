@@ -133,6 +133,40 @@ print("Variance of each numerical feature:")
 print(numerical_data.var())
 print()
 
+# Skewness of each numerical feature
+# Reason: Skewness measures the asymmetry of the distribution. It tells us
+# whether the data leans left (negative skew) or right (positive skew).
+# This is critical for choosing the right preprocessing:
+#   - Highly skewed features may need log/sqrt transformation
+#   - Symmetric features are better suited for parametric methods
+# We exclude Student ID as it's an identifier, not a clinical feature.
+numerical_data_no_id = numerical_data.drop(columns=['Student ID'], errors='ignore')
+skewness = numerical_data_no_id.skew()
+print("Skewness of each numerical feature:")
+print(skewness)
+print()
+
+# Skewness interpretation
+# Reason: Raw skewness numbers are hard to interpret at a glance.
+# Categorizing them into standard buckets (from the CSE422 lab) makes it
+# immediately clear which features need transformation and which are fine.
+def interpret_skewness(val):
+    abs_val = abs(val)
+    if abs_val < 0.05:
+        return 'Symmetrical (normal distribution)'
+    elif abs_val <= 0.5:
+        return 'Fairly symmetrical'
+    elif abs_val <= 1.0:
+        return 'Moderately skewed'
+    else:
+        return 'Highly skewed'
+
+print("Skewness Interpretation:")
+for feature, val in skewness.items():
+    interpretation = interpret_skewness(val)
+    print(f"  {feature:20s} -> skew = {val:+.4f}  =>  {interpretation}")
+print()
+
 # Number of unique values in each numerical feature
 # Reason: Knowing unique counts helps identify:
 #   - Identifier columns (Student ID: unique for every row)
@@ -191,6 +225,47 @@ for col in categorical_features:
     plt.tight_layout()
     plt.savefig(os.path.join('Data Visuals', f'barplot_{col.replace(" ", "_")}.png'), dpi=150, bbox_inches='tight')
     plt.show()
+
+# Histograms of numerical features
+# Reason: Histograms show the shape of each feature's distribution.
+# We can identify:
+#   - Skewed distributions (e.g., Age might skew young for students)
+#   - Normal distributions (Temperature, BMI should be roughly normal)
+#   - Bimodal distributions that suggest subgroups in the data
+# This informs preprocessing (e.g., log-transform skewed features).
+# Placed here under Descriptive Analysis as the lab requires distribution
+# inspection alongside summary statistics.
+numerical_data_no_id.hist(figsize=(14, 12), bins=20, edgecolor='black')
+plt.suptitle('Histograms of Numerical Features', fontsize=16, y=1.02)
+plt.tight_layout()
+plt.savefig(os.path.join('Data Visuals', 'histograms.png'), dpi=150, bbox_inches='tight')
+plt.show()
+
+# Box plots of numerical features
+# Reason: Box plots are the best visualization for detecting outliers.
+# Each box shows the IQR (25th-75th percentile) and whiskers extend to 1.5*IQR.
+# Points beyond the whiskers are outliers. In medical data, outliers could be:
+#   - Data entry errors (e.g., Height = 300 cm)
+#   - Genuinely extreme patients (e.g., very high cholesterol)
+# We need to distinguish between the two for proper data cleaning.
+num_cols_no_id = numerical_data_no_id.columns.tolist()
+n_cols = 3
+n_rows = (len(num_cols_no_id) + n_cols - 1) // n_cols
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(16, 4 * n_rows))
+axes = axes.flatten()
+
+for i, col in enumerate(num_cols_no_id):
+    sns.boxplot(data=numerical_data_no_id, y=col, ax=axes[i])
+    axes[i].set_title(f'Boxplot of {col}')
+
+# Hide any unused subplots
+for j in range(len(num_cols_no_id), len(axes)):
+    axes[j].set_visible(False)
+
+plt.suptitle('Box Plots of Numerical Features', fontsize=16, y=1.02)
+plt.tight_layout()
+plt.savefig(os.path.join('Data Visuals', 'boxplots.png'), dpi=150, bbox_inches='tight')
+plt.show()
 
 # ============================================================================
 # STAGE 2: CORRELATION ANALYSIS
@@ -263,6 +338,30 @@ plt.suptitle('Correlation with Cholesterol using Different Methods', fontsize=14
 plt.tight_layout()
 plt.savefig(os.path.join('Data Visuals', 'correlation_methods.png'), dpi=150, bbox_inches='tight')
 plt.show()
+
+# Collinearity Verification
+# Reason: Multicollinearity (two features highly correlated with each other)
+# can destabilize model coefficients in linear/logistic regression and inflate
+# variance. We programmatically extract all pairs with |correlation| > 0.7
+# (excluding self-correlations) to flag them for potential removal or
+# dimensionality reduction. Known mathematical dependencies like
+# Weight vs BMI (BMI = Weight/Height^2) will naturally appear here.
+print("\n--- Collinearity Verification ---")
+print("Feature pairs with |correlation| > 0.7:")
+corr_no_id = numerical_data_no_id.corr()
+collinear_pairs = []
+for i in range(len(corr_no_id.columns)):
+    for j in range(i + 1, len(corr_no_id.columns)):
+        feat_a = corr_no_id.columns[i]
+        feat_b = corr_no_id.columns[j]
+        corr_val = corr_no_id.iloc[i, j]
+        if abs(corr_val) > 0.7:
+            collinear_pairs.append((feat_a, feat_b, corr_val))
+            print(f"  {feat_a} <-> {feat_b}: {corr_val:.4f}")
+
+if not collinear_pairs:
+    print("  No pairs found with |correlation| > 0.7")
+print()
 
 # ============================================================================
 # STAGE 3: CHECK IMBALANCE IN DATA
@@ -345,35 +444,95 @@ plt.show()
 
 
 # ============================================================================
-# SUMMARY
+# FINAL EDA SYNTHESIS & OBSERVATIONS
 # ============================================================================
 print("=" * 70)
-print("SUMMARY")
+print("FINAL EDA SYNTHESIS & OBSERVATIONS")
 print("=" * 70)
-print("""
-Performed various exploratory data analysis techniques on the Medical
-Students Dataset:
 
-1. DESCRIPTIVE ANALYSIS:
-   - Examined 13 features (9 numerical, 4 categorical)
-   - Identified missing values across multiple columns
-   - Computed summary statistics, variance, and unique value counts
+# --- 1. Data Quality & Null Values ---
+# Reason: Consolidating all missing value information in one place gives a
+# complete picture of data quality. This is essential for deciding imputation
+# strategy before any modeling.
+print("\n--- 1. Data Quality & Null Values ---")
+total_missing = dataset.isnull().sum()
+missing_report = total_missing[total_missing > 0]
+if len(missing_report) > 0:
+    print("Columns with missing values:")
+    for col_name, count in missing_report.items():
+        pct = (count / len(dataset)) * 100
+        print(f"  {col_name:20s}: {count} missing ({pct:.2f}%)")
+else:
+    print("  No missing values found in the dataset.")
+print(f"\nTotal missing entries across all columns: {total_missing.sum()}")
+print()
 
-2. CORRELATION ANALYSIS:
-   - Generated full correlation matrix and heatmap
-   - Compared Pearson, Spearman, and Kendall correlation methods
-     against Cholesterol as the key health indicator
-   - Identified relationships between clinical measurements
+# --- 2. Distribution Shapes ---
+# Reason: Summarizing which features are Gaussian vs. skewed (based on the
+# skewness values computed earlier) helps decide which transformations and
+# statistical methods are appropriate.
+print("--- 2. Distribution Shapes (from Skewness Analysis) ---")
+for feature, val in skewness.items():
+    interpretation = interpret_skewness(val)
+    print(f"  {feature:20s}: skew = {val:+.4f}  =>  {interpretation}")
+print()
 
-3. IMBALANCE CHECK:
-   - Analyzed class distribution for Diabetes and Smoking
-   - Quantified percentage split to assess if resampling is needed
+# --- 3. Outliers (IQR Method) ---
+# Reason: Programmatic outlier detection complements the visual boxplots.
+# Using the IQR method (values beyond Q1 - 1.5*IQR or Q3 + 1.5*IQR),
+# we can quantify exactly how many outliers exist per feature.
+# This informs whether to cap, remove, or investigate extreme values.
+print("--- 3. Outlier Detection (IQR Method) ---")
+for col in numerical_data_no_id.columns:
+    Q1 = numerical_data_no_id[col].quantile(0.25)
+    Q3 = numerical_data_no_id[col].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    outlier_count = ((numerical_data_no_id[col] < lower_bound) |
+                     (numerical_data_no_id[col] > upper_bound)).sum()
+    if outlier_count > 0:
+        print(f"  {col:20s}: {outlier_count} outliers  "
+              f"(range: [{lower_bound:.2f}, {upper_bound:.2f}])")
+    else:
+        print(f"  {col:20s}: No outliers detected")
+print()
 
-4. All generated graphs are saved to the 'Data Visuals/' folder.
+# --- 4. Multicollinearity ---
+# Reason: Reiterating the collinear pairs identified in Stage 2 makes the
+# synthesis self-contained. These pairs may cause issues in regression models
+# and should be addressed via feature selection or PCA.
+print("--- 4. Multicollinearity (|correlation| > 0.7) ---")
+if collinear_pairs:
+    for feat_a, feat_b, corr_val in collinear_pairs:
+        print(f"  {feat_a} <-> {feat_b}: {corr_val:.4f}")
+    print("\n  Note: Weight and BMI collinearity is expected since")
+    print("  BMI is mathematically derived from Weight and Height.")
+    print("  Consider dropping one of the collinear features before modeling.")
+else:
+    print("  No strongly collinear pairs found.")
+print()
 
-From these insights, we can make informed decisions about:
-   - Data cleaning (handle missing values, remove/cap outliers)
-   - Feature engineering (drop Student ID, potential interactions)
-   - Model selection (consider class imbalance techniques if needed)
-   - Preprocessing (scaling, encoding categorical variables)
-""")
+# --- 5. Class Imbalance & Impact ---
+# Reason: Imbalanced classes directly affect model evaluation. A model trained
+# on imbalanced data may achieve high accuracy by simply predicting the majority
+# class (the accuracy paradox). We need to flag this so that appropriate
+# evaluation metrics (F1, Precision, Recall, AUC-ROC) and resampling techniques
+# (SMOTE, class weights) are used during modeling.
+print("--- 5. Class Imbalance & Impact on Model Evaluation ---")
+print("Diabetes:")
+for _, row in imbalance_diabetes_df.iterrows():
+    print(f"  {row['class']:10s}: {row['count']} samples ({row['percentage']}%)")
+print("Smoking:")
+for _, row in imbalance_smoking_df.iterrows():
+    print(f"  {row['class']:10s}: {row['count']} samples ({row['percentage']}%)")
+print()
+print("Impact: If significant imbalance exists (e.g., 90:10 ratio), accuracy")
+print("alone is misleading. Use F1-score, Precision, Recall, and AUC-ROC for")
+print("evaluation. Consider SMOTE or class_weight='balanced' during training.")
+print()
+
+# --- Final Notes ---
+print("=" * 70)
+print("All generated graphs are saved to the 'Data Visuals/' folder.")
+print("=" * 70)

@@ -1,0 +1,268 @@
+======================================================================
+DATASET OVERVIEW
+======================================================================
+        Student ID   Age  Gender      Height     Weight Blood Type        BMI  Temperature  Heart Rate  Blood Pressure  Cholesterol Diabetes Smoking
+0              1.0  18.0  Female  161.777924  72.354947          O  27.645835          NaN        95.0           109.0        203.0       No     NaN
+1              2.0   NaN    Male  152.069157  47.630941          B        NaN    98.714977        93.0           104.0        163.0       No      No
+2              3.0  32.0  Female  182.537664  55.741083          A  16.729017    98.260293        76.0           130.0        216.0      Yes      No
+3              NaN  30.0    Male  182.112867  63.332207          B  19.096042    98.839605        99.0           112.0        141.0       No     Yes
+4              5.0  23.0  Female         NaN  46.234173          O        NaN    98.480008        95.0             NaN        231.0       No      No
+...            ...   ...     ...         ...        ...        ...        ...          ...         ...             ...          ...      ...     ...
+199995         NaN  24.0    Male  176.503260  95.756997          B  30.737254    99.170685        65.0           121.0        130.0       No      No
+199996     99997.0  29.0  Female  163.917675  45.225194        NaN  16.831734    97.865785        62.0           125.0        198.0       No     Yes
+199997     99998.0  34.0  Female         NaN  99.648914        NaN  33.189303    98.768210        60.0            90.0        154.0      NaN      No
+199998     99999.0  30.0  Female  156.446944  50.142824          A  20.486823    98.994212        61.0           106.0        225.0       No      No
+199999    100000.0  20.0  Female  153.927409  99.928405          O  42.175189    98.595817        95.0           133.0        132.0      NaN      No
+
+[200000 rows x 13 columns]
+
+First 10 rows:
+   Student ID   Age  Gender      Height     Weight Blood Type        BMI  Temperature  Heart Rate  Blood Pressure  Cholesterol Diabetes Smoking
+0         1.0  18.0  Female  161.777924  72.354947          O  27.645835          NaN        95.0           109.0        203.0       No     NaN
+1         2.0   NaN    Male  152.069157  47.630941          B        NaN    98.714977        93.0           104.0        163.0       No      No
+2         3.0  32.0  Female  182.537664  55.741083          A  16.729017    98.260293        76.0           130.0        216.0      Yes      No
+3         NaN  30.0    Male  182.112867  63.332207          B  19.096042    98.839605        99.0           112.0        141.0       No     Yes
+4         5.0  23.0  Female         NaN  46.234173          O        NaN    98.480008        95.0             NaN        231.0       No      No
+5         6.0  32.0     NaN  151.491294  68.647805          B  29.912403    99.668373        70.0           128.0        183.0      NaN     Yes
+6         7.0  21.0     NaN  172.949704  48.102744         AB  16.081635    97.715469        66.0           134.0        247.0       No      No
+7         8.0  28.0    Male  186.489402  52.389752         AB  15.063921    98.227788        85.0           123.0        128.0       No      No
+8         9.0  21.0    Male  155.039678  42.958703          B        NaN    98.808053         NaN           111.0        243.0       No      No
+9        10.0  32.0     NaN  170.836315  50.783250          B  17.400435    98.570168        61.0            94.0        166.0      NaN      No
+
+Shape of the dataset is (200000, 13). This dataset contains 200000 rows and 13 columns.
+
+======================================================================
+FEATURE NAMES AND DATATYPES
+======================================================================
+<class 'pandas.DataFrame'>
+RangeIndex: 200000 entries, 0 to 199999
+Data columns (total 13 columns):
+ #   Column          Non-Null Count   Dtype
+---  ------          --------------   -----
+ 0   Student ID      180000 non-null  float64
+ 1   Age             180000 non-null  float64
+ 2   Gender          180000 non-null  str
+ 3   Height          180000 non-null  float64
+ 4   Weight          180000 non-null  float64
+ 5   Blood Type      180000 non-null  str
+ 6   BMI             180000 non-null  float64
+ 7   Temperature     180000 non-null  float64
+ 8   Heart Rate      180000 non-null  float64
+ 9   Blood Pressure  180000 non-null  float64
+ 10  Cholesterol     180000 non-null  float64
+ 11  Diabetes        180000 non-null  str
+ 12  Smoking         180000 non-null  str
+dtypes: float64(9), str(4)
+memory usage: 19.8 MB
+
+======================================================================
+DATA SPLITTING
+======================================================================
+There are 9 numerical features:
+
+['Student ID', 'Age', 'Height', 'Weight', 'BMI', 'Temperature', 'Heart Rate', 'Blood Pressure', 'Cholesterol']
+
+c:\Users\Marzuk\Desktop\422 Project\EDA.py:90: Pandas4Warning: For backward compatibility, 'str' dtypes are included by select_dtypes when 'object' dtype is specified. This behavior is deprecated and will be removed in a future version. Explicitly pass 'str' to `include` to select them, or to `exclude` to remove them and silence this warning.        
+See https://pandas.pydata.org/docs/user_guide/migration-3-strings.html#string-migration-select-dtypes for details on how to write code that works with pandas 2 and 3.
+  categorical_data = dataset.select_dtypes(include='object')
+There are 4 categorical features: 
+
+['Gender', 'Blood Type', 'Diabetes', 'Smoking']
+
+======================================================================
+STAGE 1: DESCRIPTIVE ANALYSIS
+======================================================================
+
+Summary statistics of Numerical Features (Transposed):
+                   count          mean           std         min           25%           50%           75%            max
+Student ID      180000.0  49974.042078  28879.641657    1.000000  24971.750000  49943.500000  74986.000000  100000.000000
+Age             180000.0     26.021561      4.890528   18.000000     22.000000     26.000000     30.000000      34.000000
+Height          180000.0    174.947103     14.447560  150.000041    162.476110    174.899914    187.464417     199.998639
+Weight          180000.0     69.971585     17.322574   40.000578     54.969838     69.979384     84.980097      99.999907
+BMI             180000.0     23.338869      7.033554   10.074837     17.858396     22.671401     27.997487      44.355113
+Temperature     180000.0     98.600948      0.500530   96.397835     98.264750     98.599654     98.940543     100.824857
+Heart Rate      180000.0     79.503767     11.540755   60.000000     70.000000     80.000000     90.000000      99.000000
+Blood Pressure  180000.0    114.558033     14.403353   90.000000    102.000000    115.000000    127.000000     139.000000
+Cholesterol     180000.0    184.486361     37.559678  120.000000    152.000000    184.000000    217.000000     249.000000
+
+Summary statistics of Categorical Features (Transposed):
+             count unique   top    freq
+Gender      180000      2  Male   90005
+Blood Type  180000      4     B   45537
+Diabetes    180000      2    No  161986
+Smoking     180000      2    No  143971
+
+Variance of each numerical feature:
+Student ID        8.340337e+08
+Age               2.391726e+01
+Height            2.087320e+02
+Weight            3.000716e+02
+BMI               4.947088e+01
+Temperature       2.505304e-01
+Heart Rate        1.331890e+02
+Blood Pressure    2.074566e+02
+Cholesterol       1.410729e+03
+dtype: float64
+
+Skewness of each numerical feature:
+Age              -0.003366
+Height            0.002273
+Weight            0.004820
+BMI               0.438351
+Temperature       0.010467
+Heart Rate       -0.001063
+Blood Pressure   -0.004830
+Cholesterol       0.004155
+dtype: float64
+
+Skewness Interpretation:
+  Age                  -> skew = -0.0034  =>  Symmetrical (normal distribution)
+  Height               -> skew = +0.0023  =>  Symmetrical (normal distribution)
+  Weight               -> skew = +0.0048  =>  Symmetrical (normal distribution)
+  BMI                  -> skew = +0.4384  =>  Fairly symmetrical
+  Temperature          -> skew = +0.0105  =>  Symmetrical (normal distribution)
+  Heart Rate           -> skew = -0.0011  =>  Symmetrical (normal distribution)
+  Blood Pressure       -> skew = -0.0048  =>  Symmetrical (normal distribution)
+  Cholesterol          -> skew = +0.0042  =>  Symmetrical (normal distribution)
+
+Number of unique values in each numerical feature:
+Student ID        98976
+Age                  17
+Height            98992
+Weight            99026
+BMI               98983
+Temperature       99006
+Heart Rate           40
+Blood Pressure       50
+Cholesterol         130
+dtype: int64
+
+Missing values in numerical features:
+Student ID        20000
+Age               20000
+Height            20000
+Weight            20000
+BMI               20000
+Temperature       20000
+Heart Rate        20000
+Blood Pressure    20000
+Cholesterol       20000
+dtype: int64
+
+======================================================================
+CATEGORICAL FEATURES ANALYSIS
+======================================================================
+
+Number of unique values in each categorical feature:
+Gender        2
+Blood Type    4
+Diabetes      2
+Smoking       2
+dtype: int64
+
+Missing values in categorical features:
+Gender        20000
+Blood Type    20000
+Diabetes      20000
+Smoking       20000
+dtype: int64
+
+======================================================================
+STAGE 2: CORRELATION ANALYSIS
+======================================================================
+
+Correlation Matrix:
+                Student ID       Age    Height    Weight       BMI  Temperature  Heart Rate  Blood Pressure  Cholesterol
+Student ID        1.000000  0.000349  0.003107 -0.001371 -0.003228     0.003705    0.003879        0.002076    -0.003341
+Age               0.000349  1.000000  0.002026  0.004939  0.002984     0.003444    0.004778       -0.003577    -0.000946
+Height            0.003107  0.002026  1.000000 -0.000486 -0.551382    -0.003992    0.005855        0.003702     0.001831
+Weight           -0.001371  0.004939 -0.000486  1.000000  0.821594     0.001355   -0.000069        0.002113    -0.001502
+BMI              -0.003228  0.002984 -0.551382  0.821594  1.000000     0.001356   -0.002198       -0.000215    -0.003336
+Temperature       0.003705  0.003444 -0.003992  0.001355  0.001356     1.000000   -0.004072       -0.003579     0.000159
+Heart Rate        0.003879  0.004778  0.005855 -0.000069 -0.002198    -0.004072    1.000000        0.003121     0.004760
+Blood Pressure    0.002076 -0.003577  0.003702  0.002113 -0.000215    -0.003579    0.003121        1.000000     0.002858
+Cholesterol      -0.003341 -0.000946  0.001831 -0.001502 -0.003336     0.000159    0.004760        0.002858     1.000000
+
+
+--- Collinearity Verification ---
+Feature pairs with |correlation| > 0.7:
+  Weight <-> BMI: 0.8216
+
+======================================================================
+STAGE 3: CHECK IMBALANCE IN DATA
+======================================================================
+
+--- Diabetes Imbalance ---
+  class   count  percentage
+0    No  161986       89.99
+1   Yes   18014       10.01
+
+--- Smoking Imbalance ---
+  class   count  percentage
+0    No  143971       79.98
+1   Yes   36029       20.02
+
+======================================================================
+FINAL EDA SYNTHESIS & OBSERVATIONS
+======================================================================
+
+--- 1. Data Quality & Null Values ---
+Columns with missing values:
+  Student ID          : 20000 missing (10.00%)
+  Age                 : 20000 missing (10.00%)
+  Gender              : 20000 missing (10.00%)
+  Height              : 20000 missing (10.00%)
+  Weight              : 20000 missing (10.00%)
+  Blood Type          : 20000 missing (10.00%)
+  BMI                 : 20000 missing (10.00%)
+  Temperature         : 20000 missing (10.00%)
+  Heart Rate          : 20000 missing (10.00%)
+  Blood Pressure      : 20000 missing (10.00%)
+  Cholesterol         : 20000 missing (10.00%)
+  Diabetes            : 20000 missing (10.00%)
+  Smoking             : 20000 missing (10.00%)
+
+Total missing entries across all columns: 260000
+
+--- 2. Distribution Shapes (from Skewness Analysis) ---
+  Age                 : skew = -0.0034  =>  Symmetrical (normal distribution)
+  Height              : skew = +0.0023  =>  Symmetrical (normal distribution)
+  Weight              : skew = +0.0048  =>  Symmetrical (normal distribution)
+  BMI                 : skew = +0.4384  =>  Fairly symmetrical
+  Temperature         : skew = +0.0105  =>  Symmetrical (normal distribution)
+  Heart Rate          : skew = -0.0011  =>  Symmetrical (normal distribution)
+  Blood Pressure      : skew = -0.0048  =>  Symmetrical (normal distribution)
+  Cholesterol         : skew = +0.0042  =>  Symmetrical (normal distribution)
+
+--- 3. Outlier Detection (IQR Method) ---
+  Age                 : No outliers detected
+  Height              : No outliers detected
+  Weight              : No outliers detected
+  BMI                 : 186 outliers  (range: [2.65, 43.21])
+  Temperature         : 1301 outliers  (range: [97.25, 99.95])
+  Heart Rate          : No outliers detected
+  Blood Pressure      : No outliers detected
+  Cholesterol         : No outliers detected
+
+--- 4. Multicollinearity (|correlation| > 0.7) ---
+  Weight <-> BMI: 0.8216
+
+  Note: Weight and BMI collinearity is expected since
+  BMI is mathematically derived from Weight and Height.
+  Consider dropping one of the collinear features before modeling.
+
+--- 5. Class Imbalance & Impact on Model Evaluation ---
+Diabetes:
+  No        : 161986 samples (89.99%)
+  Yes       : 18014 samples (10.01%)
+Smoking:
+  No        : 143971 samples (79.98%)
+  Yes       : 36029 samples (20.02%)
+
+Impact: If significant imbalance exists (e.g., 90:10 ratio), accuracy
+alone is misleading. Use F1-score, Precision, Recall, and AUC-ROC for
+evaluation. Consider SMOTE or class_weight='balanced' during training.
+
+======================================================================
+All generated graphs are saved to the 'Data Visuals/' folder.
+======================================================================
