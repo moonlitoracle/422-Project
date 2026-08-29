@@ -211,14 +211,16 @@ print("Missing values in categorical features:")
 print(categorical_data.isnull().sum())
 print()
 
-# Barplot of unique value counts in every categorical feature
+# Barplot of unique value counts in predictor categorical features
 # Reason: Bar plots visualize the distribution of each categorical variable.
 # This immediately shows:
 #   - Whether Gender is balanced (equal Male/Female) or skewed
 #   - Blood Type distribution — some types are naturally rarer
-#   - Diabetes/Smoking prevalence in the student population
-# These distributions affect model bias and may need resampling.
-for col in categorical_features:
+#   - Smoking prevalence in the student population
+# Diabetes is excluded here as it is the target variable and its
+# distribution is analyzed separately in Stage 3 (Imbalance Check).
+predictor_categoricals = ['Gender', 'Blood Type', 'Smoking']
+for col in predictor_categoricals:
     plt.figure(figsize=(8, 5))
     plt.title(f'Distribution of {col}')
     categorical_data[col].value_counts().sort_index().plot(kind='bar', rot=0, xlabel=col, ylabel='count')
@@ -274,14 +276,16 @@ print("=" * 70)
 print("STAGE 2: CORRELATION ANALYSIS")
 print("=" * 70)
 
-# Correlation matrix of whole dataset (numerical features)
+# Correlation matrix of numerical features (excluding Student ID)
 # Reason: The correlation matrix shows pairwise linear relationships between
 # all numerical features. For medical data, we expect:
 #   - Height and Weight to be positively correlated
 #   - Weight and BMI to be strongly correlated (BMI = Weight/Height^2)
 #   - Heart Rate and Blood Pressure may show some correlation
 # Highly correlated features (multicollinearity) can hurt some models.
-correlation_matrix = numerical_data.corr()
+# Student ID is excluded because it is just an identifier and would
+# produce meaningless correlation values.
+correlation_matrix = numerical_data_no_id.corr()
 print("\nCorrelation Matrix:")
 print(correlation_matrix)
 print()
@@ -298,31 +302,24 @@ plt.tight_layout()
 plt.savefig(os.path.join('Data Visuals', 'correlation_heatmap.png'), dpi=150, bbox_inches='tight')
 plt.show()
 
-# Generating correlation plot between features and target variable using
-# different methods
+# Generating correlation plot between numerical features and the target
+# variable (Diabetes) using different methods
 # Reason: Different correlation methods capture different types of relationships:
 #   - Pearson: measures LINEAR relationships (best for normally distributed data)
 #   - Spearman: measures MONOTONIC relationships using ranks (robust to outliers)
 #   - Kendall: also measures ordinal association (more conservative, good for ties)
-# Since medical data may not be perfectly linear (e.g. Age vs Cholesterol may
-# plateau), using multiple methods gives a more complete picture.
-# We correlate against Cholesterol as a key health indicator since the dataset
-# has no explicit target variable — Cholesterol is the most clinically relevant
-# continuous outcome to investigate risk factors for.
-
-# Drop Student ID from correlation — it's just an identifier, not a feature.
-# Including it would produce meaningless correlation values.
-numerical_data_no_id = numerical_data.drop(columns=['Student ID'], errors='ignore')
+# We map Diabetes (Yes/No) to numeric (1/0) so it can be included in correlation
+# calculations. This reveals which clinical features are most predictive of Diabetes.
+diabetes_mapped = dataset['Diabetes'].map({'Yes': 1, 'No': 0})
+corr_data = numerical_data_no_id.copy()
+corr_data['Diabetes'] = diabetes_mapped
 
 fig, ax = plt.subplots(3, 1, figsize=(10, 12))
 
-# Correlation coefficient using different methods against Cholesterol
-# Reason: Cholesterol is chosen as the reference variable because it's a major
-# health risk indicator. Understanding which features correlate with it
-# (e.g. does BMI or Age drive higher cholesterol?) is medically important.
-corr1 = numerical_data_no_id.corr('pearson')[['Cholesterol']].sort_values(by='Cholesterol', ascending=False)
-corr2 = numerical_data_no_id.corr('spearman')[['Cholesterol']].sort_values(by='Cholesterol', ascending=False)
-corr3 = numerical_data_no_id.corr('kendall')[['Cholesterol']].sort_values(by='Cholesterol', ascending=False)
+# Correlation coefficient using different methods against Diabetes
+corr1 = corr_data.corr('pearson')[['Diabetes']].sort_values(by='Diabetes', ascending=False)
+corr2 = corr_data.corr('spearman')[['Diabetes']].sort_values(by='Diabetes', ascending=False)
+corr3 = corr_data.corr('kendall')[['Diabetes']].sort_values(by='Diabetes', ascending=False)
 
 # Setting titles for each plot
 ax[0].set_title('Pearson method')
@@ -334,10 +331,11 @@ sns.heatmap(corr1, ax=ax[0], annot=True, cmap='coolwarm')
 sns.heatmap(corr2, ax=ax[1], annot=True, cmap='coolwarm')
 sns.heatmap(corr3, ax=ax[2], annot=True, cmap='coolwarm')
 
-plt.suptitle('Correlation with Cholesterol using Different Methods', fontsize=14, y=1.02)
+plt.suptitle('Correlation with Diabetes using Different Methods', fontsize=14, y=1.02)
 plt.tight_layout()
-plt.savefig(os.path.join('Data Visuals', 'correlation_methods.png'), dpi=150, bbox_inches='tight')
+plt.savefig(os.path.join('Data Visuals', 'correlation_methods_diabetes.png'), dpi=150, bbox_inches='tight')
 plt.show()
+
 
 # Collinearity Verification
 # Reason: Multicollinearity (two features highly correlated with each other)
@@ -406,39 +404,6 @@ plt.xlabel('Diabetes')
 plt.ylabel('Percentage (%)')
 plt.tight_layout()
 plt.savefig(os.path.join('Data Visuals', 'imbalance_diabetes.png'), dpi=150, bbox_inches='tight')
-plt.show()
-
-# Check imbalance in Smoking
-# Reason: Same logic as Diabetes — if Smoking is a prediction target,
-# we need balanced classes. Even if it's a feature, understanding its
-# distribution helps interpret the dataset (e.g., is this a population
-# with mostly non-smokers?).
-print("--- Smoking Imbalance ---")
-smoking_counts = dataset.groupby("Smoking").size()
-smoking_classes = smoking_counts.index.tolist()
-total_smoking = smoking_counts.sum()
-
-s_count = []
-s_percentage = []
-
-for cls in smoking_classes:
-    s_count.append(smoking_counts[cls])
-    percent = (smoking_counts[cls] / total_smoking) * 100
-    s_percentage.append(round(percent, 2))
-
-imbalance_smoking_df = pd.DataFrame(
-    list(zip(smoking_classes, s_count, s_percentage)), columns=columns)
-print(imbalance_smoking_df)
-print()
-
-# Barplot of Smoking vs Percentage
-plt.figure(figsize=(6, 4))
-sns.barplot(data=imbalance_smoking_df, x='class', y='percentage')
-plt.title('Smoking Class Distribution (%)')
-plt.xlabel('Smoking')
-plt.ylabel('Percentage (%)')
-plt.tight_layout()
-plt.savefig(os.path.join('Data Visuals', 'imbalance_smoking.png'), dpi=150, bbox_inches='tight')
 plt.show()
 
 
@@ -517,19 +482,18 @@ print()
 # Reason: Imbalanced classes directly affect model evaluation. A model trained
 # on imbalanced data may achieve high accuracy by simply predicting the majority
 # class (the accuracy paradox). We need to flag this so that appropriate
-# evaluation metrics (F1, Precision, Recall, AUC-ROC) and resampling techniques
-# (SMOTE, class weights) are used during modeling.
+# evaluation metrics (Precision, Recall, F1-Score, ROC-AUC) and resampling
+# techniques (SMOTE, class weights) are used during modeling.
 print("--- 5. Class Imbalance & Impact on Model Evaluation ---")
-print("Diabetes:")
+print("Diabetes (Target Variable):")
 for _, row in imbalance_diabetes_df.iterrows():
     print(f"  {row['class']:10s}: {row['count']} samples ({row['percentage']}%)")
-print("Smoking:")
-for _, row in imbalance_smoking_df.iterrows():
-    print(f"  {row['class']:10s}: {row['count']} samples ({row['percentage']}%)")
 print()
-print("Impact: If significant imbalance exists (e.g., 90:10 ratio), accuracy")
-print("alone is misleading. Use F1-score, Precision, Recall, and AUC-ROC for")
-print("evaluation. Consider SMOTE or class_weight='balanced' during training.")
+print("Observation: Diabetes exhibits a ~9:1 class imbalance ratio.")
+print("Impact: With this level of imbalance, accuracy alone is misleading.")
+print("Evaluation metrics must focus on Precision, Recall, F1-Score, and ROC-AUC.")
+print("Use Stratified Splitting to maintain class proportions in train/test sets.")
+print("Consider SMOTE or class_weight='balanced' during training to address imbalance.")
 print()
 
 # --- Final Notes ---
